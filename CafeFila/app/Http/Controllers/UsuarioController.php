@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UsuarioRequest;
 use App\Models\Usuario;
 use Illuminate\Http\Request;
 
@@ -44,41 +45,32 @@ class UsuarioController extends Controller
         return response()->json($usuario);
     }
 
-    public function criar(Request $request)
-    {
-        $dados = $request->only(['email', 'senha', 'admin', 'status']);
 
+public function criar(UsuarioRequest $request)
+{
+    $dados = $request->all(); 
 
-        $existe = Usuario::where('email', $dados['email'])->exists();
+    try {
+        $usuario = new Usuario();
+        $usuario->email = $dados["email"];
+        $usuario->senha = $dados["senha"];
+        $usuario->admin = $dados["admin"] ?? false;
+        $usuario->status = $dados["status"] ?? "ativo";
+        $usuario->save();
 
-        if ($existe) {
-            return response()->json([
-                "message" => "Email já cadastrado!"
-            ], 400);
-        }
-
-        try {
-
-            $usuario = new Usuario();
-            $usuario->email = $dados["email"];
-            $usuario->senha = $dados["senha"];
-            $usuario->admin = $dados["admin"] ?? false;
-            $usuario->status = $dados["status"] ?? "ativo";
-            $usuario->save();
-
-            return response()->json([
-                "message" => "Usuário criado com sucesso!",
-                "usuario" => $usuario
-            ], 201);
-        } catch (\Exception $e) {
-
-            return response()->json([
-                "message" => "Erro ao criar usuário.",
-                "error" => $e->getMessage()
-            ], 500);
-        }
+        return response()->json([
+            "message" => "Usuário criado com sucesso!",
+            "usuario" => $usuario
+        ], 201);
+    } catch (\Exception $e) {
+        return response()->json([
+            "message" => "Erro ao criar usuário.",
+            "error" => $e->getMessage()
+        ], 500);
     }
-    public function atualizar(string $id, Request $request)
+}
+
+    public function atualizar(string $id, UsuarioRequest $request)
 {
     try {
        
