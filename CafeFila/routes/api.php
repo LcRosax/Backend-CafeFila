@@ -16,4 +16,6 @@ Route::prefix('/usuarios')->group(function () {
 Route::prefix("/fila")->group(function () {
     Route::get("", [FilaController::class, "listar"]);
     Route::get("/{pos}", [FilaController::class, "buscarPorPosicao"]);
+    Route::post("/entrar", [FilaController::class, "entrarNaFila"]);
+    Route::delete("/sair/{usuario_id}", [FilaController::class, "sairDaFila"]);
 });
