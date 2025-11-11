@@ -10,6 +10,7 @@ Route::prefix('/usuarios')->group(function () {
     Route::get("/filtro", [UsuarioController::class, "buscarPorEmail"]);
     Route::get("/{id}", [UsuarioController::class, "buscarPorId"]);
     Route::post("", [UsuarioController::class, "criar"]);
+    Route::post("/login", [UsuarioController::class, "login"]);
     Route::patch("/{id}", [UsuarioController::class, "atualizar"]);
 });
 

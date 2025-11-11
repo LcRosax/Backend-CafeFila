@@ -51,7 +51,13 @@ class FilaController extends Controller
        try {
             $request->all();
 
-           
+           $jaEstaNaFila = Fila::where('usuario_id', $request->usuario_id)->exists();
+
+        if ($jaEstaNaFila) {
+            return response()->json([
+                'message' => 'Usuário já está na fila.'
+            ], 400);
+        }
             $ultimaPosicao = Fila::max('posicao') ?? 0;
             $novaPosicao = $ultimaPosicao + 1;
 
