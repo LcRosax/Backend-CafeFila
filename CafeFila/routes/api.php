@@ -6,14 +6,14 @@ use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\ComprasController;
 
 
-Route::prefix('/usuarios')->group(function () {
-    Route::post('', [UsuarioController::class, 'criar']);    
+Route::prefix('/usuarios')->group(function () { 
+    Route::post('', [UsuarioController::class, 'criar']); 
     Route::post('/login', [UsuarioController::class, 'login']); 
 });
 
 
-Route::middleware('auth:sanctum')->group(function () {
-
+Route::middleware('jwt')->group(function () {
+   
     
     Route::prefix('/usuarios')->group(function () {
         Route::get('', [UsuarioController::class, 'listar']);
