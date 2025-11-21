@@ -10,7 +10,6 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 
 class UsuarioController extends Controller
 {
-    
     public function listar()
     {
         try {
@@ -24,7 +23,6 @@ class UsuarioController extends Controller
         }
     }
 
-  
     public function buscarPorId(string $id)
     {
         try {
@@ -45,7 +43,6 @@ class UsuarioController extends Controller
         }
     }
 
-    
     public function buscarPorEmail(Request $request)
     {
         $email = $request->query('email');
@@ -67,21 +64,11 @@ class UsuarioController extends Controller
         return response()->json($usuario, 200);
     }
 
-   
     public function criar(UsuarioRequest $request)
     {
-        $dados = $request->all();
+        $dados = $request->validated();
 
         try {
-           
-            $emailExistente = Usuario::where('email', $dados['email'])->exists();
-
-            if ($emailExistente) {
-                return response()->json([
-                    "message" => "E-mail já cadastrado!"
-                ], 400);
-            }
-
             $usuario = new Usuario();
             $usuario->email = $dados["email"];
             $usuario->senha = Hash::make($dados["senha"]); 
@@ -101,103 +88,94 @@ class UsuarioController extends Controller
         }
     }
 
-    
-   public function atualizar(string $id, UsuarioRequest $request)
-{
-    try {
-     
-        $usuarioLogado = JWTAuth::parseToken()->authenticate();
+    public function atualizar(string $id, UsuarioRequest $request)
+    {
+        try {
+            $usuarioLogado = JWTAuth::parseToken()->authenticate();
 
-        
-        if ($usuarioLogado->id != $id) {
+            if ($usuarioLogado->id != $id && !$usuarioLogado->admin) {
+                return response()->json([
+                    "message" => "Você não tem permissão para atualizar este usuário."
+                ], 403);
+            }
+
+            $usuario = Usuario::find($id);
+
+            if (!$usuario) {
+                return response()->json([
+                    "message" => "Usuário não encontrado!"
+                ], 404);
+            }
+
+            $dados = $request->only(['email', 'senha', 'admin', 'status']);
+            
+            if (isset($dados['email']) && $dados['email'] !== $usuario->email) {
+                 $emailExistente = Usuario::where('email', $dados['email'])
+                    ->where('id', '!=', $id)
+                    ->exists();
+
+                if ($emailExistente) {
+                    return response()->json([
+                        "message" => "E-mail já está sendo usado por outro usuário!"
+                    ], 400);
+                }
+                $usuario->email = $dados["email"];
+            }
+
+            if (!empty($dados["senha"])) {
+                $usuario->senha = Hash::make($dados["senha"]);
+            }
+            
+            // Permite que Admin altere o status/admin de outros, mas o usuário só edita o próprio
+            if ($usuarioLogado->admin || $usuarioLogado->id == $id) {
+                $usuario->admin = $dados["admin"] ?? $usuario->admin;
+                $usuario->status = $dados["status"] ?? $usuario->status;
+            }
+
+            $usuario->save();
+
             return response()->json([
-                "message" => "Você não tem permissão para atualizar este usuário."
-            ], 403);
-        }
+                "message" => "Usuário atualizado com sucesso!",
+                "usuario" => $usuario
+            ], 200);
 
-        $usuario = Usuario::find($id);
-
-        if (!$usuario) {
+        } catch (\Exception $e) {
             return response()->json([
-                "message" => "Usuário não encontrado!"
-            ], 404);
+                "message" => "Erro ao atualizar usuário.",
+                "error" => $e->getMessage()
+            ], 500);
         }
-
-        $dados = $request->only(['email', 'senha', 'admin', 'status']);
-
-        
-        $emailExistente = Usuario::where('email', $dados['email'])
-            ->where('id', '!=', $id)
-            ->exists();
-
-        if ($emailExistente) {
-            return response()->json([
-                "message" => "E-mail já está sendo usado por outro usuário!"
-            ], 400);
-        }
-
-        $usuario->email = $dados["email"];
-        if (!empty($dados["senha"])) {
-            $usuario->senha = Hash::make($dados["senha"]);
-        }
-
-        $usuario->admin = $dados["admin"] ?? $usuario->admin;
-        $usuario->status = $dados["status"] ?? $usuario->status;
-        $usuario->save();
-
-        return response()->json([
-            "message" => "Usuário atualizado com sucesso!",
-            "usuario" => $usuario
-        ], 200);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            "message" => "Erro ao atualizar usuário.",
-            "error" => $e->getMessage()
-        ], 500);
     }
-}
 
+    public function login(Request $request)
+    {
+        try {
+            $dados = $request->validate([
+                'email' => 'required|email',
+                'senha' => 'required|string',
+            ]);
 
-  
+            $usuario = Usuario::where('email', $dados['email'])->first();
 
-public function login(Request $request)
-{
-    try {
-        $dados = $request->validate([
-            'email' => 'required|email',
-            'senha' => 'required|string',
-        ]);
+            if (!$usuario || !Hash::check($dados['senha'], $usuario->senha)) {
+                return response()->json([
+                    'message' => 'Credenciais inválidas.'
+                ], 401);
+            }
 
-        $usuario = Usuario::where('email', $dados['email'])->first();
+            $token = JWTAuth::fromUser($usuario);
 
-        if (!$usuario) {
             return response()->json([
-                'message' => 'Usuário não encontrado.'
-            ], 404);
-        }
+                'message' => 'Login realizado com sucesso!',
+                'usuario' => $usuario,
+                'token' => $token
+            ], 200);
 
-        if (!Hash::check($dados['senha'], $usuario->senha)) {
+        } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Senha incorreta.'
-            ], 401);
+                'message' => 'Erro ao tentar fazer login.',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        
-        $token = JWTAuth::fromUser($usuario);
-
-        return response()->json([
-            'message' => 'Login realizado com sucesso!',
-            'usuario' => $usuario,
-            'token' => $token
-        ], 200);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'message' => 'Erro ao tentar fazer login.',
-            'error' => $e->getMessage()
-        ], 500);
     }
-}
-
 }
