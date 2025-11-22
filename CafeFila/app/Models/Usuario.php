@@ -16,7 +16,7 @@ class Usuario extends Authenticatable implements JWTSubject
         'email',
         'senha',
         'admin',
-        'status',
+        'status'
     ];
     
     public function getAuthPassword()

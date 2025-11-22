@@ -19,24 +19,35 @@ class UsuarioRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'senha' => [
-                'required',
-                'string',
-                'min:8',
-                'regex:/[A-Z]/',     
-                'regex:/[a-z]/',      
-                'regex:/[0-9]/',   
-                'regex:/[@$!%*?&#^()_+\-=\[\]{};:"\\|,.<>\/?]/'
-            ],
-            'email' => [
-                'required',
-                'string',
-                'email',
-                'max:255',
-                'unique:usuarios,email', 
-            ],
-        ];
+        return  [
+        'senha' => [
+            'required',
+            'string',
+            'min:8',
+            'regex:/[A-Z]/',
+            'regex:/[a-z]/',
+            'regex:/[0-9]/',
+            'regex:/[@$!%*?&#^()_+\-=\[\]{};:"\\|,.<>\/?]/'
+        ],
+
+        'email' => [
+            'required',
+            'string',
+            'email',
+            'max:255',
+            'unique:usuarios,email',
+        ],
+
+        'admin' => [
+            'sometimes', 
+            'boolean',
+        ],
+
+        'status' => [
+            'sometimes',
+            'in:ativo,inativo',
+        ],
+    ];
     }
 
     public function messages(): array
